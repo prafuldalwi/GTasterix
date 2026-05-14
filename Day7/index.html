@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+</html>
+
+  <title>ES Modules</title>
+
+
+<script type="module" >
+
+const cache = new WeakMap();
+
+function expensiveOperation(obj) {
+  if (cache.has(obj)) {
+    console.log('From cache');
+    return cache.get(obj);
+  }
+
+  console.log('Computed');
+
+  const result = {
+    value: obj.num * 1000
+  };
+
+  cache.set(obj, result);
+
+  return result;
+}
+
+const data = {
+  num: 5
+};
+
+console.log(expensiveOperation(data));
+console.log(expensiveOperation(data));
+</script>
+
+</body>
+</html>
+
+
