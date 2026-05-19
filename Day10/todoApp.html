@@ -1,0 +1,351 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Todo App</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #f4f4f4;
+      padding: 40px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;  
+      max-width: 700px;
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    input,
+    select,
+    button {
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    input {
+      flex: 1;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: #222;
+      color: white;
+    }
+
+    ul {
+      list-style: none;
+    }
+
+    li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px;
+      margin-bottom: 10px;
+      background: #fafafa;
+      border-radius: 8px;
+      border: 1px solid #eee;
+    }
+
+    .completed {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+
+    .todo-left {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .delete {
+      background: crimson;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app">
+    <h1>Todo App</h1>
+
+    <div class="controls">
+      <input type="text" id="todoInput" placeholder="Enter todo" />
+      <button id="addBtn">Add</button>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="searchInput" placeholder="Search todos" />
+
+      <select id="sortSelect">
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="alphabetical">Alphabetical</option>
+      </select>
+    </div>
+
+    <ul id="todoList"></ul>
+  </div>
+
+  <script>
+
+    
+
+    const state = {
+      todos: [],
+      search: '',
+      sort: 'newest'
+    };
+
+
+    const todoInput = document.getElementById('todoInput');
+    const addBtn = document.getElementById('addBtn');
+    const searchInput = document.getElementById('searchInput');
+    const sortSelect = document.getElementById('sortSelect');
+    const todoList = document.getElementById('todoList');
+
+    
+
+
+
+    // STORAGE
+    
+
+    function saveTodos() {
+      localStorage.setItem('todos', JSON.stringify(state.todos));
+    }
+
+    function loadTodos() {
+      const saved = localStorage.getItem('todos');
+
+      if (saved) {
+        state.todos = JSON.parse(saved);
+      }
+    }
+
+    
+    // UTILITIES
+    
+
+    function createTodo(text) {
+      return {
+        id: Date.now(),
+        text,
+        completed: false,
+        createdAt: new Date().toISOString()
+      };
+    }
+
+    function debounce(fn, delay = 300) {
+      let timer;
+
+      return (...args) => {
+        clearTimeout(timer);
+
+        timer = setTimeout(() => {
+          fn(...args);
+        }, delay);
+      };
+    }
+
+    
+    // FILTERING
+    
+
+    function getFilteredTodos() {
+      let todos = [...state.todos];
+
+      // SEARCH
+      todos = todos.filter(todo =>
+        todo.text.toLowerCase().includes(state.search.toLowerCase())
+      );
+
+      // SORT
+      switch (state.sort) {
+        case 'oldest':
+          todos.sort((a, b) => a.id - b.id);
+          break;
+
+        case 'alphabetical':
+          todos.sort((a, b) =>
+            a.text.localeCompare(b.text)
+          );
+          break;
+
+        default:
+          todos.sort((a, b) => b.id - a.id);
+      }
+
+      return todos;
+    }
+
+    
+    // RENDERING
+    
+
+    function renderTodos() {
+      const todos = getFilteredTodos();
+
+      todoList.innerHTML = todos
+        .map(todo => {
+          return `
+            <li data-id="${todo.id}">
+              <div class="todo-left">
+                <input
+                  type="checkbox"
+                  class="toggle"
+                  ${todo.completed ? 'checked' : ''}
+                />
+
+                <span class="${todo.completed ? 'completed' : ''}">
+                  ${todo.text}
+                </span>
+              </div>
+
+              <div class="actions">
+                <button class="delete">Delete</button>
+              </div>
+            </li>
+          `;
+        })
+        .join('');
+    }
+
+    
+    
+
+    function addTodo() {
+      const text = todoInput.value.trim();
+
+      if (!text) return;
+
+      const todo = createTodo(text);
+
+      state.todos.push(todo);
+
+      saveTodos();
+      renderTodos();
+
+      todoInput.value = '';
+    }
+
+    function deleteTodo(id) {
+      state.todos = state.todos.filter(todo => todo.id !== id);
+
+      saveTodos();
+      renderTodos();
+    }
+
+    function toggleTodo(id) {
+      state.todos = state.todos.map(todo => {
+        if (todo.id === id) {
+          return {
+            ...todo,
+            completed: !todo.completed
+          };
+        }
+
+        return todo;
+      });
+
+      saveTodos();
+      renderTodos();
+    }
+
+    
+    // EVENTS
+    
+
+    addBtn.addEventListener('click', addTodo);
+
+    todoInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        addTodo();
+      }
+    });
+
+    searchInput.addEventListener(
+      'input',
+      debounce(e => {
+        state.search = e.target.value;
+        renderTodos();
+      })
+    );
+
+    sortSelect.addEventListener('change', e => {
+      state.sort = e.target.value;
+      renderTodos();
+    });
+
+    // EVENT DELEGATION
+    todoList.addEventListener('click', e => {
+      const li = e.target.closest('li');
+
+      if (!li) return;
+
+      const id = Number(li.dataset.id);
+
+      if (e.target.classList.contains('delete')) {
+        deleteTodo(id);
+      }
+    });
+
+    todoList.addEventListener('change', e => {
+      const li = e.target.closest('li');
+
+      if (!li) return;
+
+      const id = Number(li.dataset.id);
+
+      if (e.target.classList.contains('toggle')) {
+        toggleTodo(id);
+      }
+    });
+
+   
+    
+
+    function init() {
+      loadTodos();
+      renderTodos();
+    }
+
+    init();
+  </script>
+</body>
+</html>
